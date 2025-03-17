@@ -304,16 +304,16 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }      
     
+    // Cargar la imagen de fondo
+    let fondo = new Image();
+    fondo.src = "tierra.jpg"; // Asegúrate de que la imagen esté en la carpeta correcta
+
     function draw() {
-        // Fondo con degradado
-        let gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, "#958970"); // Café claro
-        gradient.addColorStop(1, "#665234"); // Café acero
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Dibujar el fondo con la imagen
+        ctx.drawImage(fondo, 0, 0, canvas.width, canvas.height);
         
         // Dibujar paredes con un efecto de sombra
-        ctx.fillStyle = "#3F9228"; // Verde oscuro para paredes
+        ctx.fillStyle = "#018D06"; // Verde oscuro para paredes
         walls.forEach(wall => {
             ctx.shadowColor = "#3F9228";
             ctx.shadowBlur = 2;
