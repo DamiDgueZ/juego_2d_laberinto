@@ -85,12 +85,11 @@ document.addEventListener("DOMContentLoaded", function () {
         let newX = player.x;
         let newY = player.y;
     
-        if (keys["ArrowUp"] && player.y - player.radius - player.speed >= 0) newY -= player.speed;
-        if (keys["ArrowDown"] && player.y + player.radius + player.speed <= canvas.height) newY += player.speed;
-        if (keys["ArrowLeft"] && player.x - player.radius - player.speed >= 0) newX -= player.speed;
-        if (keys["ArrowRight"] && player.x + player.radius + player.speed <= canvas.width) newX += player.speed;
+        if (keys["ArrowUp"] && player.y - player.radius > 0) newY -= player.speed;
+        if (keys["ArrowDown"] && player.y + player.radius < canvas.height) newY += player.speed;
+        if (keys["ArrowLeft"] && player.x - player.radius > 0) newX -= player.speed;
+        if (keys["ArrowRight"] && player.x + player.radius < canvas.width) newX += player.speed;
     
-        // Verificar colisión con las paredes
         if (!walls.some(wall =>
             newX + player.radius > wall.x &&
             newX - player.radius < wall.x + wall.width &&
@@ -100,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function () {
             player.x = newX;
             player.y = newY;
         }
-    }      
+    }    
 
     function moveEnemies() {
         enemies.forEach(enemy => {
@@ -290,21 +289,20 @@ document.addEventListener("DOMContentLoaded", function () {
         resetLevel();
     }   
     
-    function checkCollisionWithCoins() {
+    function checkCoinCollection() {
         for (let i = coins.length - 1; i >= 0; i--) {
             let dx = player.x - coins[i].x;
             let dy = player.y - coins[i].y;
             let distance = Math.sqrt(dx * dx + dy * dy);
     
             if (distance < player.radius + coins[i].radius) {
-                let sound = new Audio("coin.mp3"); // Crear nueva instancia
-                sound.play(); // Reproducir sonido sin solapamientos
-    
-                coins.splice(i, 1); // Eliminar la moneda
-                score += 10;
+                score += 5; // Sumar 5 puntos
+                coinSound.play(); // 🔹 Reproducir sonido de moneda
+                coins.splice(i, 1); // Eliminar la moneda recolectada
+                document.getElementById("score").textContent = score; // Actualizar el puntaje en pantalla
             }
         }
-    }           
+    }      
     
     function draw() {
         // Fondo con degradado
