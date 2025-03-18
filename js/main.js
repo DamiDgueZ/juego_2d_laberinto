@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-
+    
     const mazeSize = 15;
     const cellSize = 40;
 
@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         document.getElementById("highScore").textContent = highScore;
     }
-
+    
     function generateCoins() {
         coins = [];
         for (let i = 0; i < 10; i++) { // Genera 10 monedas en lugares aleatorios
@@ -376,9 +376,17 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }      
     
-    // Cargar la imagen de fondo
     let fondo = new Image();
-    fondo.src = "tierra.jpg"; // Asegúrate de que la imagen esté en la carpeta correcta
+    fondo.src = "tierra.jpg";
+
+    let granjeroImg = new Image();
+    granjeroImg.src = "granjero.png";
+
+    let maizImg = new Image();
+    maizImg.src = "maiz.png";
+    
+    let enemyImg = new Image();
+    enemyImg.src = "marvin.png";
 
     function draw() {
         ctx.drawImage(fondo, 0, 0, canvas.width, canvas.height);
@@ -395,20 +403,22 @@ document.addEventListener("DOMContentLoaded", function () {
         ctx.arc(goal.x + goal.width / 2, goal.y + goal.height / 2, 10 + Math.sin(Date.now() * 0.005) * 5, 0, Math.PI * 2);
         ctx.fill();
     
-        ctx.fillStyle = "blue";
-        ctx.shadowColor = "black";
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.shadowBlur = 0; // Elimina el sombreado
+        let imgWidth = player.radius * 4;
+        let imgHeight = player.radius * 4;
+        ctx.drawImage(granjeroImg, player.x - imgWidth / 2, player.y - imgHeight / 2, imgWidth, imgHeight);
+
     
-        ctx.fillStyle = "red";
-        ctx.shadowColor = "darkred";
-        ctx.shadowBlur = 10;
+        const enemyImgSize = new Image();
+        enemyImgSize.src = "marvin.png";
+
+        enemyImg.onload = () => {
+            console.log("Imagen cargada");
+        };
+
         enemies.forEach(enemy => {
-            ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
-            ctx.fill();
+            let enemyImgSize = enemy.radius * 3;
+            ctx.drawImage(enemyImg, enemy.x - enemyImgSize / 2, enemy.y - enemyImgSize / 2, enemyImgSize, enemyImgSize);
         });
     
         ctx.fillStyle = "yellow";
@@ -423,10 +433,11 @@ document.addEventListener("DOMContentLoaded", function () {
         ctx.fillStyle = "gold";
         ctx.shadowColor = "orange";
         ctx.shadowBlur = 10;
+
+        const coinSize = 35;
+        
         coins.forEach(coin => {
-            ctx.beginPath();
-            ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.drawImage(maizImg, coin.x - coinSize / 2, coin.y - coinSize / 2, coinSize, coinSize); // Centrar la imagen
         });
     
         document.getElementById("score").textContent = score;
