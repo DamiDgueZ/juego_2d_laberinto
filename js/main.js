@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let lasers = [];
     let coins = [];
     let score = 0;
+    let highScore = localStorage.getItem("highScore") ? parseInt(localStorage.getItem("highScore")) : 0;
     
     let enemies = Array.from({ length: 3 }, () => ({
         x: Math.floor(Math.random() * mazeSize) * cellSize + cellSize / 2,
@@ -62,6 +63,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         }
+    }
+
+    function updateHighScore() {
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem("highScore", highScore);
+        }
+        document.getElementById("highScore").textContent = highScore;
     }
 
     function generateCoins() {
@@ -152,11 +161,12 @@ document.addEventListener("DOMContentLoaded", function () {
         gameLoop();
     }    
 
+
     function resetLevel(resetScore = false) {
         generateMaze();
         ensureOneSolution();
-        generateCoins(); // 🔹 Llamar aquí para generar monedas
-    
+        generateCoins(); 
+        
         grid[0][0] = false;
         player.x = 30;
         player.y = 30;
@@ -164,7 +174,8 @@ document.addEventListener("DOMContentLoaded", function () {
         keys = {};
     
         if (resetScore) {
-            score = 0; // Reinicia puntaje solo si el jugador muere
+            updateHighScore(); // Actualiza el puntaje más alto antes de reiniciar
+            score = 0; 
         }
     
         let enemyCount = 2 + level;
@@ -178,25 +189,74 @@ document.addEventListener("DOMContentLoaded", function () {
                 direction: ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"][Math.floor(Math.random() * 4)],
                 changeDirectionCooldown: 0
             };
-        });    
-    }     
+        });
+    
+        updateHighScore(); // Asegura que se muestre el puntaje más alto actualizado
+    }   
 
     resetLevel();
 
     function checkCollisionWithEnemies() {
-        enemies.forEach(enemy => {
+        for (let i = 0; i < enemies.length; i++) {
+            let enemy = enemies[i];
+    
+            // Calcular la distancia entre el jugador y el enemigo
             let dx = player.x - enemy.x;
             let dy = player.y - enemy.y;
             let distance = Math.sqrt(dx * dx + dy * dy);
+    
             if (distance < player.radius + enemy.radius) {
-                gameOverSound.play(); // Reproduce el sonido de Game Over
-                alert("¡Has sido atrapado!");
-                level = 1;  // Reinicia el nivel a 1
-                resetLevel(true); // Reinicia con el puntaje en 0
+                // Si hay colisión, termina el juego
+                let level = parseInt(document.getElementById("level").textContent);
+                let score = parseInt(document.getElementById("score").textContent);
+                let highScore = Math.max(score, parseInt(document.getElementById("highScore").textContent));
+    
+                document.getElementById("highScore").textContent = highScore; 
+                gameOver(level, score, highScore);
+                return;  // Sal del bucle para evitar múltiples llamadas
             }
-        });
-    }      
+        }
+    }    
 
+    document.addEventListener("keydown", function (event) {
+        keys[event.key] = true;
+        
+        // Guarda la última dirección para que el láser dispare correctamente
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+            lastDirection = event.key;
+        }
+
+        if (event.key === " ") { 
+            shootLaser(); // Disparar láser con la barra espaciadora
+        }
+    });
+
+    document.addEventListener("keyup", function (event) {
+        keys[event.key] = false;
+    });
+
+    function gameOver(level, score, highScore) {
+        gameOverSound.play();
+    
+        // Actualizar puntaje final en el modal
+        document.getElementById("finalScore").textContent = score;
+        document.getElementById("finalHighScore").textContent = highScore;
+    
+        // Mostrar el modal de Bootstrap
+        let gameOverModal = new bootstrap.Modal(document.getElementById("gameOverModal"));
+        gameOverModal.show();
+    
+        // Reiniciar el nivel
+        resetLevel(true);
+    }   
+    
+    window.addEventListener("keydown", (event) => {
+        // Verifica si la tecla presionada es una flecha o la barra espaciadora
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(event.key)) {
+            event.preventDefault();  // Evita que la página se desplace
+        }
+    });       
+    
     const laserSound = new Audio("laser.mp3");
     const explosionSound = new Audio("explosion.mp3");
     const levelUpSound = new Audio("nivel.mp3"); // Nuevo sonido para subir de nivel 
@@ -288,6 +348,18 @@ document.addEventListener("DOMContentLoaded", function () {
         alert(`¡Nivel ${level}!`);
         resetLevel();
     }   
+
+    function goBack() {
+        var gameOverModal = bootstrap.Modal.getInstance(document.getElementById('gameOverModal'));
+        gameOverModal.hide();
+    
+        var instructionsModal = new bootstrap.Modal(document.getElementById('instructionsModal'));
+        instructionsModal.show();
+    }
+    
+    function restartGame() {
+        location.reload(); // Recarga la página para reiniciar todo
+    }      
     
     function checkCoinCollection() {
         for (let i = coins.length - 1; i >= 0; i--) {
@@ -309,32 +381,27 @@ document.addEventListener("DOMContentLoaded", function () {
     fondo.src = "tierra.jpg"; // Asegúrate de que la imagen esté en la carpeta correcta
 
     function draw() {
-        // Dibujar el fondo con la imagen
         ctx.drawImage(fondo, 0, 0, canvas.width, canvas.height);
-        
-        // Dibujar paredes con un efecto de sombra
-        ctx.fillStyle = "#018D06"; // Verde oscuro para paredes
+    
+        ctx.fillStyle = "#018D06"; 
         walls.forEach(wall => {
             ctx.shadowColor = "#3F9228";
             ctx.shadowBlur = 2;
             ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
         });
     
-        // Dibujar la meta con animación
         ctx.fillStyle = "gold";
         ctx.beginPath();
         ctx.arc(goal.x + goal.width / 2, goal.y + goal.height / 2, 10 + Math.sin(Date.now() * 0.005) * 5, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Dibujar jugador con sombra
+    
         ctx.fillStyle = "blue";
         ctx.shadowColor = "black";
         ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Dibujar enemigos con sombra roja
+    
         ctx.fillStyle = "red";
         ctx.shadowColor = "darkred";
         ctx.shadowBlur = 10;
@@ -344,7 +411,6 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.fill();
         });
     
-        // Dibujar los láseres con un resplandor amarillo
         ctx.fillStyle = "yellow";
         ctx.shadowColor = "gold";
         ctx.shadowBlur = 15;
@@ -353,7 +419,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.arc(laser.x, laser.y, 6, 0, Math.PI * 2);
             ctx.fill();
         });
-
+    
         ctx.fillStyle = "gold";
         ctx.shadowColor = "orange";
         ctx.shadowBlur = 10;
@@ -362,11 +428,16 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
             ctx.fill();
         });
-
-        // Dibujar puntaje y nivel en la interfaz
+    
         document.getElementById("score").textContent = score;
         document.getElementById("level").textContent = level;
-    }    
+        document.getElementById("highScore").textContent = highScore;
+    }
+    
+    // Inicializar el puntaje más alto en la interfaz
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("highScore").textContent = highScore;
+    });
     
     let lastDirection = "ArrowRight"; // Dirección predeterminada
 
