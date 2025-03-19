@@ -1,7 +1,7 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    
+
     const mazeSize = 15;
     const cellSize = 40;
 
@@ -18,6 +18,45 @@ document.addEventListener("DOMContentLoaded", function () {
     let coins = [];
     let score = 0;
     let highScore = localStorage.getItem("highScore") ? parseInt(localStorage.getItem("highScore")) : 0;
+
+    let gameLoopId;  // Control del bucle principal
+    let isLevelPopupOpen = false;  // Evitar múltiples ventanas emergentes
+
+    function nextLevel() {
+        if (isLevelPopupOpen) return;  // Evita múltiples llamadas
+        isLevelPopupOpen = true;
+    
+        levelUpSound.play();
+        level++;
+    
+        // Actualiza el nivel mostrado en la ventana emergente
+        document.getElementById("nextLevel").textContent = level;
+    
+        // Muestra la ventana emergente
+        document.getElementById("levelUpPopup").style.display = "flex";
+    
+        // Pausa el juego
+        cancelAnimationFrame(gameLoopId);
+    }
+    
+    function closeLevelPopup() {
+        // Oculta la ventana emergente
+        document.getElementById("levelUpPopup").style.display = "none";
+    
+        // Restablece la variable de bloqueo
+        isLevelPopupOpen = false;
+    
+        // Reinicia el nivel
+        resetLevel();
+    
+        // Reanuda el juego
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+    
+    // Inicia el juego correctamente al cargar la página
+    document.addEventListener("DOMContentLoaded", () => {
+        gameLoopId = requestAnimationFrame(gameLoop);
+    });
     
     let enemies = Array.from({ length: 3 }, () => ({
         x: Math.floor(Math.random() * mazeSize) * cellSize + cellSize / 2,
@@ -93,7 +132,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function movePlayer() {
         let newX = player.x;
         let newY = player.y;
-    
+
         if (keys["ArrowUp"] && player.y - player.radius > 0) newY -= player.speed;
         if (keys["ArrowDown"] && player.y + player.radius < canvas.height) newY += player.speed;
         if (keys["ArrowLeft"] && player.x - player.radius > 0) newX -= player.speed;
@@ -114,7 +153,7 @@ document.addEventListener("DOMContentLoaded", function () {
         enemies.forEach(enemy => {
             let newX = enemy.x;
             let newY = enemy.y;
-    
+
             if (enemy.direction === "ArrowUp") newY -= enemy.speed;
             if (enemy.direction === "ArrowDown") newY += enemy.speed;
             if (enemy.direction === "ArrowLeft") newX -= enemy.speed;
@@ -235,20 +274,27 @@ document.addEventListener("DOMContentLoaded", function () {
         keys[event.key] = false;
     });
 
-    function gameOver(level, score, highScore) {
+    function gameOver() {
         gameOverSound.play();
     
-        // Actualizar puntaje final en el modal
-        document.getElementById("finalScore").textContent = score;
-        document.getElementById("finalHighScore").textContent = highScore;
+        // Guarda el puntaje actual antes de reiniciar
+        let finalScore = score;  
+        let finalHighScore = Math.max(score, highScore); 
+    
+        // Actualiza el puntaje final en el modal
+        document.getElementById("finalScore").textContent = finalScore;
+        document.getElementById("finalHighScore").textContent = finalHighScore;
     
         // Mostrar el modal de Bootstrap
         let gameOverModal = new bootstrap.Modal(document.getElementById("gameOverModal"));
         gameOverModal.show();
     
-        // Reiniciar el nivel
+        // Actualizar el puntaje más alto
+        updateHighScore();
+    
+        // Reiniciar el nivel (resetear el puntaje después de mostrarlo)
         resetLevel(true);
-    }   
+    }      
     
     window.addEventListener("keydown", (event) => {
         // Verifica si la tecla presionada es una flecha o la barra espaciadora
@@ -341,14 +387,44 @@ document.addEventListener("DOMContentLoaded", function () {
             player.y + player.radius > goal.y &&
             player.y - player.radius < goal.y + goal.height;
     }
-    
-    function nextLevel() {
-        levelUpSound.play(); // Reproduce el sonido de nivel
-        level++;
-        alert(`¡Nivel ${level}!`);
-        resetLevel();
-    }   
 
+    function nextLevel() {
+        if (isLevelPopupOpen) return;
+    
+        isLevelPopupOpen = true;
+        levelUpSound.play();
+        level++;
+    
+        // Actualiza el nivel en la ventana emergente
+        document.getElementById("nextLevel").textContent = level;
+    
+        // Muestra la ventana emergente
+        const popup = document.getElementById("levelUpPopup");
+        popup.style.display = "flex";
+    
+        // Pausa el juego
+        cancelAnimationFrame(gameLoopId);
+    
+        // Asegúrate de asociar correctamente el evento al botón
+        const closeButton = document.getElementById("closeLevelButton");
+        closeButton.onclick = closeLevelPopup;
+    }
+    
+    function closeLevelPopup() {
+        // Oculta la ventana emergente correctamente
+        const popup = document.getElementById("levelUpPopup");
+        popup.style.display = "none";
+    
+        // Restablece la variable de bloqueo
+        isLevelPopupOpen = false;
+    
+        // Reinicia el nivel
+        resetLevel();
+    
+        // Reanuda el juego
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+    
     function goBack() {
         var gameOverModal = bootstrap.Modal.getInstance(document.getElementById('gameOverModal'));
         gameOverModal.hide();
@@ -468,20 +544,28 @@ document.addEventListener("DOMContentLoaded", function () {
         keys[event.key] = false;
     });       
 
+
     function gameLoop() {
         movePlayer();
         moveEnemies();
-        moveLasers();  // Mueve los láseres
-        checkLaserCollisions(); // Verifica colisiones con enemigos
+        moveLasers();
+        checkLaserCollisions();
         checkCollisionWithEnemies();
         checkCoinCollection();
-    
+
         if (checkGoal()) {
             nextLevel();
+            return;  // Pausa el juego temporalmente para mostrar la ventana
         }
-    
+
         draw();
-        requestAnimationFrame(gameLoop);
-    }    
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
     gameLoop();
+
+    function startGame() {
+        resetLevel();
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+    startGame();
 });
